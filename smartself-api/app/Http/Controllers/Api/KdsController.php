@@ -10,7 +10,6 @@ use App\Http\Controllers\Controller;
 
 class KdsController extends Controller
 {
-    // 🔹 Fetch active orders for kitchen
     public function index()
     {
         $orders = Order::whereIn('status', ['pending', 'preparing', 'ready', 'collected'])
@@ -19,7 +18,6 @@ class KdsController extends Controller
 
         $data = $orders->map(function ($order) {
             $tableName = DB::table('tables')
-                ->where('tenant_id', $order->tenant_id)
                 ->where('id', $order->table_id)
                 ->value('table_name');
 
@@ -30,9 +28,10 @@ class KdsController extends Controller
                 ->get();
 
             return [
-                'id' => $order->id, // ✅ use order ID instead of pickup_token
+                'id' => $order->id,
                 'table' => $tableName ?? 'N/A',
                 'status' => $order->status,
+                'payment_status' => $order->payment_status, // ✅ expose payment status
                 'created_at' => $order->created_at,
                 'items' => $items,
             ];
@@ -41,7 +40,6 @@ class KdsController extends Controller
         return response()->json($data);
     }
 
-    // 🔹 Update order status
     public function updateStatus(Request $request, Order $order)
     {
         $status = $request->input('status');
@@ -55,8 +53,13 @@ class KdsController extends Controller
             'pending'   => ['preparing'],
             'preparing' => ['ready'],
             'ready'     => ['collected'],
-            'collected' => [] // ✅ prevent going back from collected
+            'collected' => []
         ];
+
+        // prevent collection without payment
+        if ($status === 'collected' && $order->payment_status !== 'paid') {
+            return response()->json(['error' => 'Payment required before marking collected'], 403);
+        }
 
         if (!in_array($status, $validTransitions[$order->status] ?? [])) {
             return response()->json(['error' => 'Invalid transition'], 422);
@@ -65,7 +68,6 @@ class KdsController extends Controller
         $old = $order->status;
         $order->update(['status' => $status]);
 
-        // Log event
         DB::table('order_events')->insert([
             'order_id'   => $order->id,
             'status'     => $status,

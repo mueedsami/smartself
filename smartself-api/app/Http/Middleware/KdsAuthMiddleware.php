@@ -7,15 +7,15 @@ use Illuminate\Http\Request;
 
 class KdsAuthMiddleware
 {
-    public function handle(Request $request, Closure $next)
+    public function handle($request, Closure $next)
     {
-        $provided = $request->header('x-kds-key');
-        $expected = config('services.kds.secret');
+        $provided = $request->header('x-kds-key') ?? $request->header('x-cashier-key');
 
-        if (!$expected || $provided !== $expected) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        if ($provided !== env('KDS_KEY', 'smartself2025chef') && $provided !== env('CASHIER_KEY', 'smartself2025cashier')) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         return $next($request);
     }
+
 }

@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\KdsController;
+use App\Http\Controllers\Api\PickupController;
+use App\Models\Order;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,3 +73,12 @@ Route::middleware('kds_auth')->group(function () {
 
 // Public endpoint for users to track their order
 Route::get('/orders/status/{pickup_token}', [KdsController::class, 'publicStatus']);
+
+// Pickup verification (QR scan)
+Route::get('/pickup/{pickup_token}', [PickupController::class, 'verifyPickup']);
+Route::post('/pickup/verify', [PickupController::class, 'verifyPickup']);
+
+Route::patch('/orders/{order}/pay', function (Order $order) {
+    $order->update(['payment_status' => 'paid']);
+    return response()->json(['success' => true, 'message' => 'Payment recorded']);
+});

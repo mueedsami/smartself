@@ -78,20 +78,22 @@ export default function ReceiptPage() {
 
       const data = await res.json();
 
-      if (res.ok && (data.pickup_token || data.payment?.status === "captured")) {
-        const token = data.pickup_token || data.order?.pickup_token;
-        setPickupToken(token);
-        const qr = await QRCode.toDataURL(token, { margin: 1, scale: 6 });
-        setQrUrl(qr);
-        setShowThankYou(true);
-        setOrder({
-          ...order,
-          payment_status: "paid",
-          pickup_token: token,
-        });
-      } else {
-        alert(`❌ Payment failed: ${data.message || "Unknown error"}`);
-      }
+      if (res.ok && data.pickup_token) {
+  const token = data.pickup_token;
+  const isCash = method === "cash";
+  setPickupToken(token);
+  const qr = await QRCode.toDataURL(token, { margin: 1, scale: 6 });
+  setQrUrl(qr);
+  setShowThankYou(true);
+  setOrder({
+    ...order,
+    payment_status: isCash ? "unpaid" : "paid",
+    pickup_token: token,
+  });
+} else {
+  alert(`❌ Payment failed: ${data.message || "Unknown error"}`);
+}
+
     } catch (err) {
       console.error("Payment error:", err);
       alert("⚠️ Could not process payment. Check console for details.");
