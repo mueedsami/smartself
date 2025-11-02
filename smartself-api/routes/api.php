@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\GuestSessionController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\KdsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,3 +59,15 @@ Route::post('/payments', [PaymentController::class, 'store']);
 Route::get('/payments/order/{orderId}', [PaymentController::class, 'byOrder']);
 Route::get('/orders/{order}/receipt', [OrderController::class, 'receipt'])
     ->middleware(['guest.session']); // use your GuestSessionMiddleware alias
+
+
+
+
+// Kitchen display (protected)
+Route::middleware('kds_auth')->group(function () {
+    Route::get('/kds/orders', [KdsController::class, 'index']);
+    Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus']);
+});
+
+// Public endpoint for users to track their order
+Route::get('/orders/status/{pickup_token}', [KdsController::class, 'publicStatus']);
